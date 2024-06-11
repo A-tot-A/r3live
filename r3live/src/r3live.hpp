@@ -420,7 +420,25 @@ public:
         m_lio_state_fp = fopen( std::string(m_map_output_dir).append("/lic_lio.log").c_str(), "w+");
         m_lio_costtime_fp = fopen(std::string(m_map_output_dir).append("/lic_lio_costtime.log").c_str(), "w+");
         m_thread_pool_ptr->commit_task(&R3LIVE::service_LIO_update, this);
-             
+
+        vector<double> lidar_imu_t;
+        if (m_ros_node_handle.getParam("r3live_lio/lidar_imu_t", lidar_imu_t)) {
+          Lidar_offset_to_IMU << lidar_imu_t[0], lidar_imu_t[1], lidar_imu_t[2];
+        } else {
+          cout << "No LiDAR->IMU translation defined, assuming identity"
+               << endl;
+          Lidar_offset_to_IMU << 0, 0, 0;
+        }
+
+        vector<double> lidar_imu_R;
+        if (m_ros_node_handle.getParam("r3live_lio/lidar_imu_R", lidar_imu_R)) {
+          Lidar_rotate_to_IMU << lidar_imu_R[0], lidar_imu_R[1], lidar_imu_R[2],
+              lidar_imu_R[3], lidar_imu_R[4], lidar_imu_R[5], lidar_imu_R[6],
+              lidar_imu_R[7], lidar_imu_R[8];
+        } else {
+          cout << "No LiDAR->IMU rotation defined, assuming identity" << endl;
+          Lidar_offset_to_IMU << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+        }
     }
     ~R3LIVE(){};
 

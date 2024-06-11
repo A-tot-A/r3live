@@ -200,7 +200,7 @@ bool R3LIVE::sync_packages( MeasureGroup &meas )
 void R3LIVE::pointBodyToWorld( PointType const *const pi, PointType *const po )
 {
     Eigen::Vector3d p_body( pi->x, pi->y, pi->z );
-    Eigen::Vector3d p_global( g_lio_state.rot_end * ( p_body + Lidar_offset_to_IMU ) + g_lio_state.pos_end );
+    Eigen::Vector3d p_global( g_lio_state.rot_end * ( Lidar_rotate_to_IMU*p_body + Lidar_offset_to_IMU ) + g_lio_state.pos_end );
 
     po->x = p_global( 0 );
     po->y = p_global( 1 );
@@ -211,7 +211,7 @@ void R3LIVE::pointBodyToWorld( PointType const *const pi, PointType *const po )
 void R3LIVE::RGBpointBodyToWorld( PointType const *const pi, pcl::PointXYZI *const po )
 {
     Eigen::Vector3d p_body( pi->x, pi->y, pi->z );
-    Eigen::Vector3d p_global( g_lio_state.rot_end * ( p_body + Lidar_offset_to_IMU ) + g_lio_state.pos_end );
+    Eigen::Vector3d p_global( g_lio_state.rot_end * ( Lidar_rotate_to_IMU*p_body + Lidar_offset_to_IMU ) + g_lio_state.pos_end );
 
     po->x = p_global( 0 );
     po->y = p_global( 1 );
