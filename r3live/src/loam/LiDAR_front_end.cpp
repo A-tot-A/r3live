@@ -286,9 +286,71 @@ void horizon_handler( const livox_ros_driver::CustomMsg::ConstPtr &msg )
 
 int orders[ 16 ] = { 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15 };
 
+struct VelodynePointXYZIRT {
+    PCL_ADD_POINT4D
+    
+    PCL_ADD_INTENSITY;
+    uint16_t ring;
+    float time;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (VelodynePointXYZIRT,
+                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)
+                                           (uint16_t, ring, ring)(float, time, time)
+)
+
 void velo16_handler( const sensor_msgs::PointCloud2::ConstPtr &msg )
 {
-    // TODO
+    pcl::PointCloud<PointType> pl_processed;
+    pcl::PointCloud<VelodynePointXYZIRT> pl_orig;
+    pcl::fromROSMsg(*msg, pl_orig);
+    uint plsize = pl_orig.size();
+
+    double time_stamp = msg->header.stamp.toSec();
+    pl_processed.clear();
+    pl_processed.reserve( pl_orig.points.size() );
+    for ( int i = 0; i < pl_orig.points.size(); i++ )
+    {
+        double range = std::sqrt( pl_orig.points[ i ].x * pl_orig.points[ i ].x + pl_orig.points[ i ].y * pl_orig.points[ i ].y +
+                                  pl_orig.points[ i ].z * pl_orig.points[ i ].z );
+        if ( range < blind )
+        {
+            continue;
+        }
+        Eigen::Vector3d pt_vec;
+        PointType       added_pt;
+        added_pt.x = pl_orig.points[ i ].x;
+        added_pt.y = pl_orig.points[ i ].y;
+        added_pt.z = pl_orig.points[ i ].z;
+        added_pt.intensity = pl_orig.points[ i ].intensity;
+        added_pt.normal_x = 0;
+        added_pt.normal_y = 0;
+        added_pt.normal_z = 0;
+        double yaw_angle = std::atan2( added_pt.y, added_pt.x ) * 57.3;
+        if ( yaw_angle >= 180.0 )
+            yaw_angle -= 360.0;
+        if ( yaw_angle <= -180.0 )
+            yaw_angle += 360.0;
+
+        added_pt.curvature = pl_orig.points[i].time * 1000.0;
+
+        pl_processed.points.push_back( added_pt );
+        if ( 0 ) // For debug
+        {
+            if ( pl_processed.size() % 1000 == 0 )
+            {
+                printf( "[%d] (%.2f, %.2f, %.2f), ( %.2f, %.2f, %.2f ) | %.2f | %.3f,  \r\n", i, pl_orig.points[ i ].x, pl_orig.points[ i ].y,
+                        pl_orig.points[ i ].z, pl_processed.points.back().normal_x, pl_processed.points.back().normal_y,
+                        pl_processed.points.back().normal_z, yaw_angle, pl_processed.points.back().intensity );
+                cout << ( int ) ( pl_orig.points[ i ].ring ) << ", " << pl_orig.points[ i ].time << endl;
+            }
+        }
+    }
+    pub_func( pl_processed, pub_full, msg->header.stamp );
+    pub_func( pl_processed, pub_surf, msg->header.stamp );
+    pub_func( pl_processed, pub_corn, msg->header.stamp );
 }
 
 void velo16_handler1( const sensor_msgs::PointCloud2::ConstPtr &msg )
