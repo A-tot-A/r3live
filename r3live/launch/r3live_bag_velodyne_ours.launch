@@ -1,0 +1,29 @@
+<launch>
+    <node pkg="pointcloud_merger" name="pointcloud_merger" type="pointcloud_merger">
+        <remap from="/velodyne_points0" to="/velodyne_points_transformed0"/>
+        <remap from="/velodyne_points1" to="/velodyne_points_transformed1"/>
+        <remap from="/merged_velodyne_points" to="/velodyne_points"/>
+        <rosparam param="extrinsic_R">[0.9999881, -0.0028162, -0.0039793, 0.0028443,  0.9999709,  0.0070836, 0.0039592, -0.0070948,  0.9999670]</rosparam>
+        <rosparam param="extrinsic_T">[-0.00578614, -0.0366074, 0.0456239]</rosparam>
+    </node>
+
+    <!-- Subscribed topics -->
+    <param name="/LiDAR_pointcloud_topic" type="string" value= "/laser_cloud_flat" />
+    <param name="/IMU_topic" type="string" value= "/imu/data" />
+    <param name="/Image_topic" type="string" value= "/cv_bridge_image" />
+    <param name="map_output_dir" type="string" value="$(env HOME)/r3live_output" />
+    <rosparam command="load" file="$(find r3live)/../config/r3live_velodynes_camera_config.yaml" />
+    
+    <!-- set LiDAR type as velodyne spining LiDAR -->
+    <param name="/Lidar_front_end/lidar_type" type="int" value= "2" /> 
+    <param name="/Lidar_front_end/point_step" type="int" value="1" />
+    <param name="r3live_lio/lio_update_point_step" type="int" value="3" />
+        
+    <node pkg="r3live" type="r3live_LiDAR_front_end" name="r3live_LiDAR_front_end"  output="screen" required="true"/>
+    <node pkg="r3live" type="r3live_mapping" name="r3live_mapping" output="screen" required="true" />
+    
+    <arg name="rviz" default="1" />
+    <group if="$(arg rviz)">
+        <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find r3live)/../config/rviz/r3live_rviz_config_ouster.rviz" />
+    </group>
+ </launch>
